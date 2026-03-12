@@ -1,0 +1,50 @@
+[project]
+name = "penngrader2"
+version = "0.1.0"
+description = "PennGrader 2 notebook client and grading service"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "PennGrader Team" },
+]
+keywords = ["education", "autograding", "jupyter", "fastapi", "postgresql"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Education",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Framework :: FastAPI",
+  "Topic :: Education",
+]
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.30.0",
+  "psycopg[binary]>=3.2.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.3.0",
+  "requests>=2.32.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/RyanMarcus/penngrader2"
+Repository = "https://github.com/RyanMarcus/penngrader2"
+Issues = "https://github.com/RyanMarcus/penngrader2/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+packages = ["app", "app.api", "app.core", "app.db", "app.worker", "app.grader_runtime", "penngrader2"]

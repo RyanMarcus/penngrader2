@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: penngrader2-pg
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: penngrader2
+    ports:
+      - "55432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: penngrader2-api
+    depends_on:
+      - postgres
+    environment:
+      PG_DSN: postgresql://postgres:postgres@postgres:5432/penngrader2
+      API_KEY_STUDENT: student-dev-key
+      API_KEY_TA: ta-dev-key
+      API_KEY_INSTRUCTOR: instructor-dev-key
+      GRADER_RUNTIME_IMAGE: penngrader2-grader-runtime:latest
+    command: >
+      sh -c "python scripts/migrate.py &&
+             uvicorn app.api.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: penngrader2-worker
+    depends_on:
+      - postgres
+    environment:
+      PG_DSN: postgresql://postgres:postgres@postgres:5432/penngrader2
+      API_KEY_STUDENT: student-dev-key
+      API_KEY_TA: ta-dev-key
+      API_KEY_INSTRUCTOR: instructor-dev-key
+      GRADER_RUNTIME_IMAGE: penngrader2-grader-runtime:latest
+      WORKER_CONCURRENCY: 5
+      GRADER_TIMEOUT_SECONDS: 600
+    command: ["python", "-m", "app.worker.main"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  pg_data:

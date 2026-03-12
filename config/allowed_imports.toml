@@ -1,0 +1,13 @@
+allowed_modules = [
+  "math",
+  "statistics",
+  "itertools",
+  "functools",
+  "collections",
+  "numpy",
+  "pandas",
+  "duckdb",
+  "json",
+  "re",
+  "time",
+]
