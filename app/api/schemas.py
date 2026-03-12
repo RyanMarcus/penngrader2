@@ -26,6 +26,7 @@ class SubmissionStatusResponse(BaseModel):
     assignment_key: str
     problem_key: str
     status: str
+    total_points: Decimal
     score: Decimal | None = None
     feedback: str | None = None
     error_type: str | None = None

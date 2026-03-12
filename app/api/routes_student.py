@@ -88,6 +88,7 @@ def get_student_submission(
         assignment_key=row["assignment_key"],
         problem_key=row["problem_key"],
         status=row["status"],
+        total_points=row["total_points"],
         score=row["score"],
         feedback=row["feedback"],
         error_type=row["error_type"],

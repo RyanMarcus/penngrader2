@@ -38,7 +38,7 @@ class PennGraderClient:
     def _headers(self) -> dict[str, str]:
         return {"X-API-Key": self.api_key}
 
-    def submit(self, assignment_key: str, problem_key: str, submission_payload: Any) -> dict[str, Any]:
+    def submit(self, assignment_key: str, problem_key: str, submission_payload: Any) -> None:
         if self.student_id is None:
             raise PennGraderClientError("Call login(student_id) before submit()")
 
@@ -84,7 +84,9 @@ class PennGraderClient:
                     for event in _iter_sse(stream.iter_lines(decode_unicode=True)):
                         if event.id is not None:
                             last_event_id = event.id
-                        print(f"[{event.event}] {event.data.get('message', '')}")
+                        message = event.data.get("message")
+                        if message:
+                            print(f"[{event.event}] {message}")
 
                         if event.event in {"succeeded", "failed"}:
                             final_data = event.data
@@ -106,13 +108,8 @@ class PennGraderClient:
         )
         status_resp.raise_for_status()
         status_body = status_resp.json()
-
-        return {
-            "submission_id": body["submission_id"],
-            "queue_position": body.get("queue_position"),
-            "final_event": final_data,
-            "status": status_body,
-        }
+        print(_format_submission_summary(status_body))
+        return None
 
     def upload_grader(
         self,
@@ -174,6 +171,49 @@ def _iter_sse(lines):
             data_lines.append(line[5:].strip())
 
 
+def _format_submission_summary(status_body: dict[str, Any]) -> str:
+    status = str(status_body.get("status", "unknown"))
+    score = status_body.get("score")
+    total_points = status_body.get("total_points")
+    feedback = status_body.get("feedback")
+    error_type = status_body.get("error_type")
+
+    if status == "failed":
+        prefix = "Error while grading."
+    elif score is not None and total_points is not None and _is_full_credit(score, total_points):
+        prefix = "✅ Correct."
+    else:
+        prefix = "Incorrect."
+
+    parts = [prefix, _format_score_text(score, total_points)]
+    if feedback:
+        parts.append(str(feedback))
+    elif error_type:
+        parts.append(f"Error type: {error_type}.")
+    return " ".join(parts)
+
+
+def _format_score_text(score: Any, total_points: Any) -> str:
+    if score is None and total_points is None:
+        return "Score: unavailable."
+    if score is None:
+        return f"Score: unavailable (max {_display_number(total_points)})."
+    if total_points is None:
+        return f"Score: {_display_number(score)}."
+    return f"Score: {_display_number(score)}/{_display_number(total_points)}."
+
+
+def _is_full_credit(score: Any, total_points: Any) -> bool:
+    return Decimal(str(score)) == Decimal(str(total_points))
+
+
+def _display_number(value: Any) -> str:
+    decimal_value = Decimal(str(value))
+    if decimal_value == decimal_value.to_integral():
+        return str(decimal_value.quantize(Decimal("1")))
+    return format(decimal_value.normalize(), "f")
+
+
 _client: PennGraderClient | None = None
 
 
@@ -188,7 +228,7 @@ def login(student_id: int) -> None:
     _client.login(student_id)
 
 
-def submit(assignment_key: str, problem_key: str, submission_payload: Any) -> dict[str, Any]:
+def submit(assignment_key: str, problem_key: str, submission_payload: Any) -> None:
     if _client is None:
         raise RuntimeError("Call penngrader2.configure(base_url, api_key) first")
     return _client.submit(assignment_key, problem_key, submission_payload)

@@ -149,9 +149,10 @@ import penngrader2
 
 penngrader2.configure("http://127.0.0.1:8000", api_key="student-dev-key")
 penngrader2.login(21837184)
-result = penngrader2.submit("hw1", "problem1", 42)
-print(result)
+penngrader2.submit("hw1", "problem1", 42)
 ```
+
+`submit()` streams progress updates and prints a final summary instead of returning a JSON blob.
 
 For raw API submission without the client:
 

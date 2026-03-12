@@ -197,6 +197,7 @@ def get_submission(conn: Connection, submission_id: uuid.UUID | str) -> dict[str
               s.student_id,
               a.assignment_key,
               p.problem_key,
+              p.total_points,
               s.status,
               s.score,
               s.feedback,
