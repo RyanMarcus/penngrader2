@@ -152,7 +152,7 @@ penngrader2.login(21837184)
 penngrader2.submit("hw1", "problem1", 42)
 ```
 
-`submit()` streams progress updates and prints a final summary instead of returning a JSON blob.
+`submit()` streams progress updates, automatically waits and retries on `429` rate limits, and prints a final summary instead of returning a JSON blob.
 
 For raw API submission without the client:
 

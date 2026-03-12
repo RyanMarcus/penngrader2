@@ -8,10 +8,17 @@ from penngrader2.client import PennGraderClient, PennGraderClientError
 
 
 class DummyResponse:
-    def __init__(self, status_code: int, payload: dict | None = None, text: str = "") -> None:
+    def __init__(
+        self,
+        status_code: int,
+        payload: dict | None = None,
+        text: str = "",
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self.status_code = status_code
         self._payload = payload or {}
         self.text = text
+        self.headers = headers or {}
 
     def json(self) -> dict:
         return self._payload
@@ -207,3 +214,67 @@ def test_submit_prints_error_summary(monkeypatch, capsys):
 
     assert result is None
     assert "Error while grading. Score: unavailable (max 5). Grader execution timed out" in captured
+
+
+def test_submit_waits_and_retries_after_rate_limit(monkeypatch, capsys):
+    post_responses = [
+        DummyResponse(429, text="Rate limited", headers={"Retry-After": "3"}),
+        DummyResponse(
+            202,
+            payload={
+                "submission_id": "sub-3",
+                "events_url": "https://grader.example/events/sub-3",
+                "queue_position": 1,
+            },
+        ),
+    ]
+    sleep_calls: list[float] = []
+
+    def fake_post(url, *, headers, timeout, json):
+        return post_responses.pop(0)
+
+    def fake_get(url, *, headers, timeout, stream=False, params=None):
+        if stream:
+            return DummyStreamResponse(
+                200,
+                [
+                    "id: 1",
+                    "event: queued",
+                    'data: {"message":"Queued for grading","payload":{"queue_position":1},"created_at":"2026-03-12T00:00:00Z"}',
+                    "",
+                    "id: 2",
+                    "event: succeeded",
+                    'data: {"message":"","payload":{"score":5,"feedback":"Correct"},"created_at":"2026-03-12T00:00:02Z"}',
+                    "",
+                ],
+            )
+        return DummyResponse(
+            200,
+            payload={
+                "submission_id": "sub-3",
+                "student_id": 21837184,
+                "assignment_key": "hw1",
+                "problem_key": "problem1",
+                "status": "succeeded",
+                "total_points": "5",
+                "score": "5",
+                "feedback": "Correct",
+                "error_type": None,
+                "error_traceback": None,
+            },
+        )
+
+    monkeypatch.setattr("penngrader2.client.requests.post", fake_post)
+    monkeypatch.setattr("penngrader2.client.requests.get", fake_get)
+    monkeypatch.setattr("penngrader2.client.time.sleep", sleep_calls.append)
+
+    client = PennGraderClient(base_url="https://grader.example", api_key="student-key")
+    client.login(21837184)
+
+    result = client.submit("hw1", "problem1", 42)
+    captured = capsys.readouterr().out
+
+    assert result is None
+    assert sleep_calls == [3.0]
+    assert "Rate limited. Waiting 3s before retrying submission..." in captured
+    assert "✅ Correct. Score: 5/5. Correct" in captured

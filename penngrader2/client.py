@@ -43,17 +43,27 @@ class PennGraderClient:
             raise PennGraderClientError("Call login(student_id) before submit()")
 
         headers = self._headers()
-        response = requests.post(
-            f"{self.base_url}/v1/student/submissions",
-            headers=headers,
-            timeout=self.timeout_seconds,
-            json={
-                "student_id": self.student_id,
-                "assignment_key": assignment_key,
-                "problem_key": problem_key,
-                "submission_payload": submission_payload,
-            },
-        )
+        while True:
+            response = requests.post(
+                f"{self.base_url}/v1/student/submissions",
+                headers=headers,
+                timeout=self.timeout_seconds,
+                json={
+                    "student_id": self.student_id,
+                    "assignment_key": assignment_key,
+                    "problem_key": problem_key,
+                    "submission_payload": submission_payload,
+                },
+            )
+            if response.status_code != 429:
+                break
+
+            retry_after_seconds = _retry_after_seconds(response)
+            print(
+                f"Rate limited. Waiting {_format_wait_seconds(retry_after_seconds)} before retrying submission..."
+            )
+            time.sleep(retry_after_seconds)
+
         if response.status_code >= 400:
             raise PennGraderClientError(
                 f"submit failed ({response.status_code}): {response.text}"
@@ -212,6 +222,18 @@ def _display_number(value: Any) -> str:
     if decimal_value == decimal_value.to_integral():
         return str(decimal_value.quantize(Decimal("1")))
     return format(decimal_value.normalize(), "f")
+
+
+def _retry_after_seconds(response: requests.Response) -> float:
+    retry_after = response.headers.get("Retry-After", "1")
+    try:
+        return max(0.0, float(retry_after))
+    except ValueError:
+        return 1.0
+
+
+def _format_wait_seconds(seconds: float) -> str:
+    return f"{_display_number(seconds)}s"
 
 
 _client: PennGraderClient | None = None
