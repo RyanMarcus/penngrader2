@@ -185,6 +185,28 @@ curl -N -H 'X-API-Key: student-dev-key' -H 'Last-Event-ID: 5' \
 
 Each grader function must be named `grade_<problem_key_sanitized>` and accept `(submission, callback)`.
 
+From Python with a TA key:
+
+```python
+import penngrader2
+
+penngrader2.configure("http://127.0.0.1:8000", api_key="ta-dev-key")
+penngrader2.upload_grader(
+    "hw1",
+    "problem1",
+    5,
+    """def grade_problem1(submission, callback):
+    callback('Starting')
+    answer = int(submission)
+    if answer == 42:
+        return (5, 'Correct')
+    return (0, f'Expected 42, got {answer}')
+""",
+)
+```
+
+From the raw API:
+
 ```bash
 curl -sS -X PUT 'http://127.0.0.1:8000/v1/ta/assignments/hw1/problems/problem1/grader' \
   -H 'Content-Type: application/json' \

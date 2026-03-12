@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
 import requests
@@ -34,11 +35,14 @@ class PennGraderClient:
     def login(self, student_id: int) -> None:
         self.student_id = int(student_id)
 
+    def _headers(self) -> dict[str, str]:
+        return {"X-API-Key": self.api_key}
+
     def submit(self, assignment_key: str, problem_key: str, submission_payload: Any) -> dict[str, Any]:
         if self.student_id is None:
             raise PennGraderClientError("Call login(student_id) before submit()")
 
-        headers = {"X-API-Key": self.api_key}
+        headers = self._headers()
         response = requests.post(
             f"{self.base_url}/v1/student/submissions",
             headers=headers,
@@ -110,6 +114,32 @@ class PennGraderClient:
             "status": status_body,
         }
 
+    def upload_grader(
+        self,
+        assignment_key: str,
+        problem_key: str,
+        total_points: int | float | str | Decimal,
+        source_code: str,
+    ) -> dict[str, Any]:
+        response = requests.put(
+            f"{self.base_url}/v1/ta/assignments/{assignment_key}/problems/{problem_key}/grader",
+            headers=self._headers(),
+            timeout=self.timeout_seconds,
+            json={
+                "total_points": str(total_points) if isinstance(total_points, Decimal) else total_points,
+                "source_code": source_code,
+            },
+        )
+        if response.status_code in {401, 403}:
+            raise PennGraderClientError(
+                f"upload_grader failed ({response.status_code}): TA API key required: {response.text}"
+            )
+        if response.status_code >= 400:
+            raise PennGraderClientError(
+                f"upload_grader failed ({response.status_code}): {response.text}"
+            )
+        return response.json()
+
 
 def _iter_sse(lines):
     event_id: int | None = None
@@ -162,3 +192,19 @@ def submit(assignment_key: str, problem_key: str, submission_payload: Any) -> di
     if _client is None:
         raise RuntimeError("Call penngrader2.configure(base_url, api_key) first")
     return _client.submit(assignment_key, problem_key, submission_payload)
+
+
+def upload_grader(
+    assignment_key: str,
+    problem_key: str,
+    total_points: int | float | str | Decimal,
+    source_code: str,
+) -> dict[str, Any]:
+    if _client is None:
+        raise RuntimeError("Call penngrader2.configure(base_url, api_key) first")
+    return _client.upload_grader(
+        assignment_key=assignment_key,
+        problem_key=problem_key,
+        total_points=total_points,
+        source_code=source_code,
+    )
