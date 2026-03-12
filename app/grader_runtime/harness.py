@@ -25,8 +25,12 @@ def main() -> int:
         emit({"type": "error", "error_type": "protocol_error", "message": "Expected payload path"})
         return 2
 
-    payload_path = Path(sys.argv[1])
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    payload_arg = sys.argv[1]
+    if payload_arg == "-":
+        payload = json.load(sys.stdin)
+    else:
+        payload_path = Path(payload_arg)
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
 
     source_code = payload["source_code"]
     function_name = payload["function_name"]

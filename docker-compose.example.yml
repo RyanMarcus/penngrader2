@@ -25,7 +25,7 @@ services:
       GRADER_RUNTIME_IMAGE: penngrader2-grader-runtime:latest
     command: >
       sh -c "python scripts/migrate.py &&
-             uvicorn app.api.main:app --host 0.0.0.0 --port 8000"
+             uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"
     ports:
       - "8000:8000"
 
