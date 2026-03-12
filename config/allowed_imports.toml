@@ -10,4 +10,5 @@ allowed_modules = [
   "json",
   "re",
   "time",
+  "requests"
 ]
