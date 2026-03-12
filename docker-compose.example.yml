@@ -44,7 +44,9 @@ services:
       GRADER_RUNTIME_IMAGE: penngrader2-grader-runtime:latest
       WORKER_CONCURRENCY: 5
       GRADER_TIMEOUT_SECONDS: 600
-    command: ["python", "-m", "app.worker.main"]
+    command: >
+      sh -c "python scripts/migrate.py &&
+             python -m app.worker.main"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 

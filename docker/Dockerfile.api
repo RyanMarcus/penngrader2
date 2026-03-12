@@ -1,13 +1,10 @@
 FROM python:3.11-slim
 
-ARG PENNGRADER2_REF=main
-
 WORKDIR /app
 
-COPY config ./config
-COPY scripts ./scripts
+COPY . .
 
-RUN pip install --no-cache-dir "git+https://github.com/RyanMarcus/penngrader2.git@${PENNGRADER2_REF}"
+RUN pip install --no-cache-dir .
 
 EXPOSE 8000
 CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
