@@ -242,6 +242,7 @@ pytest -q
 ### What future agents should know
 
 - GitHub is the distribution source of truth for the notebook client; use `pip install git+https://github.com/RyanMarcus/penngrader2.git` instead of planning around a separate PyPI release.
+- `docker/Dockerfile.api` installs the service package from GitHub over HTTPS. Use `--build-arg PENNGRADER2_REF=<branch|tag|sha>` if you need to pin a specific revision.
 - `config/allowed_imports.toml` controls grader import validation. If you expand the allowlist or add grader dependencies, rebuild `docker/Dockerfile.grader-runtime`.
 - Database schema changes live in `app/db/migrations`, and `scripts/migrate.py` is the migration entrypoint used by both local runs and the container stack.
 - Long-running grader callbacks have been validated for multi-minute SSE progress updates. A test grader emitted updates at roughly 30-second intervals through a 120-second run.
