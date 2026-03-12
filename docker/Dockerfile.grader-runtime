@@ -3,6 +3,6 @@ FROM python:3.11-slim
 WORKDIR /opt/penngrader
 
 # Runtime packages should match the allowlist policy.
-RUN pip install --no-cache-dir numpy pandas duckdb
+RUN pip install --no-cache-dir numpy pandas duckdb requests
 
 COPY app/grader_runtime/harness.py /opt/penngrader/harness.py
